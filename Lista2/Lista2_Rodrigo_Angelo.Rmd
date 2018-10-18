@@ -1,0 +1,296 @@
+---
+title: "Estatística Computacional - Lista 2"
+author: "Rodrigo de Castro Ângelo"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercício 1
+
+Como as amostras são dependentes e estamos supondo normalidade dos dados, fazemos o teste t para duas amostras pareadas.
+
+* H~0~: $\mu_{atual} = \mu_{nova}$ 
+* H~1~: $\mu_{atual} > \mu_{nova}$ 
+
+```{r 1.}
+atual <- c(24, 25, 27, 22, 23, 28, 26, 28, 29)
+nova  <- c(21, 23, 28, 27, 24, 26, 25, 22, 23)
+t.test(atual, nova, alternative = "greater", paired = T)
+```
+
+Como o valor-p = 0.1256 > $\alpha$, não rejeita-se a hipótese nula.
+
+### Conclusão:
+Utilizando o teste t pareado, não rejeita-se a hipótese nula ao nível de 5% de significância, portanto devemos considerar que não houve diminuição no tempo médio para realização da tarefa.
+
+$\pagebreak$
+
+## Exercício 2
+```{r 2.}
+tecnica1 <- c(1, 4, 4, 5, 6, 6)
+tecnica2 <- c(2, 6, 6, 7, 7, 8)
+```
+
+### Item a.
+
+Como estamos supondo normalidade, usamos o teste F de Fisher.
+
+* $H_0: \displaystyle \frac{\sigma_{tecnica1}}{\sigma_{tecnica2}} = 1$
+
+* $H_1: \displaystyle \frac{\sigma_{tecnica1}}{\sigma_{tecnica2}} \neq 1$
+
+```{r 2.a.}
+var.test(tecnica1, tecnica2)
+```
+
+Como o valor-p > $\alpha$, não rejeita-se a hipótese nula. Então devemos considerar que a razão entre as variâncias populacionais é 1, ou seja, as variâncias podem ser consideradas iguais.
+
+### Item b.
+
+Como supomos normalidade e as variâncias populacionais são consideradas iguais, utilizamos o teste t para amostras independentes com mesma variância. Desejamos verificar se a Técnica 1 é mais eficiente, ou seja, se o tempo de recuperação é menor.
+
+* H~0~: $\mu_{tecnica1} = \mu_{tecnica2}$ 
+* H~1~: $\mu_{tecnica1} < \mu_{tecnica2}$ 
+
+```{r}
+t.test(tecnica1, tecnica2, var.equal = T, alternative = "less")
+```
+Como o valor-p > $\alpha$, não rejeita-se a hipótese nula. Portanto devemos considerar que a Técnica 1 não é mais eficiente que a Técnica 2.
+
+$\pagebreak$
+
+## Exercício 3
+
+```{r}
+dinheiro <- c(56.00, 20.50, 37.37,  28.64)
+cheque   <- c(80.90, 51.29, 40.95,  72.65, 132.47, 60.32, 60.00)
+cartao   <- c(73.25, 56.65, 123.21, 56.50, 37.29,  44.65, 40.64)
+```
+
+### Item a.
+Análise descritiva das variáveis dinheiro, cheque e cartao:
+```{r}
+mean(dinheiro)
+sd(dinheiro)
+summary(dinheiro)
+
+mean(cheque)
+sd(cheque)
+summary(cheque)
+
+mean(cartao)
+sd(cartao)
+summary(cartao)
+```
+Com base nos dados da análise descritiva, podemos observar que tanto a média quanto a mediana amostrais das compras pagas em dinheiro são bem menores que das outras formas de pagamento, sugerindo que na população isso também ocorra.
+
+### Item b.
+
+Como temos 3 amostras , realiza-se a ANOVA.
+Tratando os dados:
+```{r}
+forma.pagamento <- c(rep("Dinheiro", length(dinheiro)),
+                     rep("Cheque", length(cheque)), rep("Cartão", length(cartao)))
+
+compras <- data.frame(Valor = c(dinheiro, cheque, cartao), Forma_Pagamento = forma.pagamento)
+
+compras
+```
+
+
+Teste de homocedasticidade dos dados. Será utilizado o teste de Bartlett.
+
+* H~0~: As variâncias são homogêneas
+* H~1~: As variâncias não são homogêneas
+
+```{r}
+bartlett.test(Valor ~ Forma_Pagamento, data = compras)
+```
+
+Como o valor-p = 0.4746 > $\alpha$, então não rejeita-se H~0~ e pode-se prosseguir com a ANOVA.
+
+* $H_0: \mu_{dinheiro} = \mu_{cheque} = \mu_{cartao}$
+* $H_1:$ Ao menos uma média é diferente
+
+```{r}
+compras.aov <- aov(Valor ~ Forma_Pagamento, data = compras)
+summary(compras.aov)
+plot(compras.aov, 2)
+shapiro.test(residuals(compras.aov))
+```
+
+
+
+Como os resíduos não apresentaram normalidade, como pode ser observado no gráfico, deve-se desconsiderar o resultado da ANOVA e procurar outra alternativa para comparar esses valores.
+
+
+$\pagebreak$
+
+## Exercício 4
+
+Para este exercício, como não foi especificado, será fixado o nível de significância $\alpha = 0.05$
+
+```{r}
+aeusp <- read.csv("aeusp.txt", sep="", na.strings="")
+aeusp$Renda=factor(aeusp$Renda)
+aeusp$Sexo=factor(aeusp$Sexo, labels = c("Masculino", "Feminino"))
+```
+
+### Item a.
+
+```{r}
+shapiro.test(aeusp[aeusp$Sexo == "Masculino",]$Itrab)
+shapiro.test(aeusp[aeusp$Sexo == "Feminino",]$Itrab)
+t.test(Itrab ~ Sexo, data = aeusp)
+```
+
+Fixando o nível de significância em 5%, temos que o valor-p > $\alpha$ e, portanto, não se rejeita H~0~.
+
+#### Conclusão
+Não há diferenças significativas de Idade que começou a trabalhar entre homens e mulheres.
+
+
+### Item b.
+
+Como temos 5 sub-populações neste caso, deve-se fazer o teste utilizando a ANOVA.
+
+
+
+Primeiramente testa-se homocedasticidade dos dados. Será utilizado o teste de Bartlett.
+
+* H~0~: As variâncias são homogêneas
+* H~1~: As variâncias não são homogêneas
+
+```{r}
+bartlett.test(aeusp$Itrab ~ aeusp$Reproce)
+```
+
+Como o valor-p=0.7735 > $\alpha$, então não rejeita-se H~0~ e pode-se prosseguir com o teste.
+
+* H~0~: As médias da variável itrab nas sup-populações são iguais
+* H~1~: Ao menos uma sub-população tem média diferente de uma das demais para a variável itrab
+
+```{r}
+itrab_x_reproce.aov <- aov(aeusp$Itrab ~ aeusp$Reproce)
+summary(itrab_x_reproce.aov)
+shapiro.test(itrab_x_reproce.aov$residuals)
+plot(itrab_x_reproce.aov, 2)
+```
+
+Observando o teste de Shapiro-Wilk e o plot dos resíduos, pode-se verificar que os resíduos não seguem normalidade. 
+
+Neste caso, deve-se desconsiderar a ANOVA e procurar uma outra alternativa para comparar as médias das idades nas sub-populações
+
+##### Conclusão:
+Não foi possível testar se as médias da variável itrab nas sub-populações definidas pela região de procedência são iguais.
+
+$\pagebreak$
+
+## Exercício 5
+
+```{r}
+cancer <- read.table("cancer.txt", header = T)
+cancer$Grupo <- factor(cancer$Grupo, 
+                       label = c("falso-negativo", "negativo", "positivo", "falso-positivo"), 
+                       levels = 1:4)
+```
+
+### Item a.
+
+```{r}
+casos_positivos <- cancer[cancer$Grupo == "falso-negativo" | cancer$Grupo == "positivo",]
+plot(N ~ Idade, data = casos_positivos)
+```
+
+Com base no gráfico de dispersão para o N e Idade dos pacientes que têm a doença, pode-se dizer que a concentração de nitrogênio no sangue parece apresentar um leve aumento conforme aumenta a idade.
+
+### Item b.
+
+```{r}
+n_x_idade.pos.modelo <- lm(N ~ Idade, data = casos_positivos)
+summary(n_x_idade.pos.modelo)
+plot(N ~ Idade, data = casos_positivos)
+abline(n_x_idade.pos.modelo)
+title("Curva de melhor ajuste para regressão linear")
+```
+
+Pode-se observar que o resultado do modelo de regressão linear estima $\alpha = 9.31133$ e $\beta = 0.09382$.
+
+Esse valor de 0.09382 para $\beta$ indica que para cada unidade de aumento na variável Idade, a variável N aumenta em 0.09382. Ou seja, a concentração de nitrogênio no sangue de fato aumenta conforme a idade aumenta.
+
+### Item d.
+
+```{r}
+casos_negativos <- cancer[cancer$Grupo == "falso-positivo" | cancer$Grupo == "negativo",]
+plot(N ~ Idade, data = casos_negativos)
+```
+
+Pode-se observar neste gráfico que em pacientes que não têm a doença, à medida que a idade aumenta, a concentração de Nitrogênio teve um aumento mais expressivo do que nos pacientes que têm a doença.
+
+### Item e.
+
+
+```{r}
+n_x_idade.neg.modelo <- lm(N ~ Idade, data = casos_negativos)
+summary(n_x_idade.neg.modelo)
+plot(N ~ Idade, data = casos_negativos)
+abline(n_x_idade.neg.modelo)
+title("Curva de melhor ajuste para regressão linear")
+```
+
+Pode-se observar que para este caso, o resultado do modelo de regressão linear estima $\alpha = 8.37812$ e $\beta = 0.14211$.
+
+Esse valor de 0.14211 para $\beta$ indica que para cada unidade de aumento na variável Idade, a variável N aumenta em 0.14211 Ou seja, a concentração de nitrogênio no sangue de fato aumenta conforme a idade aumenta.
+
+Ao comparar este valor de $\beta$ com o resultado do Item b., pode-se dizer que em pacientes que não têm a doença, a concentração de Nitorgênio aumenta mais com a idade do que em pacientes que têm a doença, pois $\beta_{negatvo} > \beta_{positivo}$.
+
+### Item f.
+
+Teste $\chi^2$ para independência
+
+
+```{r}
+shapiro.test(casos_negativos$Idade)
+shapiro.test(casos_negativos$N)
+
+chisq.test(casos_negativos$Idade, casos_negativos$N)
+```
+
+Como o valor-p = 0.001042 < $\alpha$, rejeita-se H~0~. Então deve-se considerar que a idade influencia a concentração de nitrogênio para os pacientes sem a doença.
+
+### Item g.
+
+Os itens anteriores sugerem que pacientes com a doença apresentam um menor crescimento da concentração de nitrogênio com a idade do que pacientes sem a doença. Então sim, pode-se dizer que esse efeito é um dado importante para discriminar entre pacientes com e sem a doença.
+
+$\pagebreak$
+
+## Exercício 6
+
+### Item a.
+
+```{r}
+# P(X = x), em que X ~ Zeta(a)
+dzeta <- function(x, a) {
+  c = 0
+  for(i in 1:10^6) {
+    c = c + i^a
+  }
+  return(1/(c*x^(a)))
+}
+
+```
+### Item b.
+
+```{r}
+# P(X <= x), em que X ~ Zeta(a)
+pzeta <- function(x, a) {
+  soma = 0
+  for(i in 1:x) {
+    soma = soma + dzeta(i, a)
+  }
+  return(soma)
+}
+```
